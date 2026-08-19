@@ -17,8 +17,8 @@ Check these in order:
 
 CS1 network crossings are not intersections unless a real node exists. Use:
 
-```powershell
-Invoke-RestMethod "http://127.0.0.1:32123/state/road-anomalies?nearMissDistance=18&shortSegmentLength=32&includeDeadEnds=false"
+```bash
+curl -s "http://127.0.0.1:32123/state/road-anomalies?nearMissDistance=18&shortSegmentLength=32&includeDeadEnds=false"
 ```
 
 Then remove the bad segment with `/commands/bulldoze` and rebuild with endpoints close enough to reuse the intended road nodes.
@@ -27,8 +27,8 @@ Then remove the bad segment with `/commands/bulldoze` and rebuild with endpoints
 
 Use:
 
-```powershell
-Invoke-RestMethod http://127.0.0.1:32123/state/building-anomalies?limit=200
+```bash
+curl -s "http://127.0.0.1:32123/state/building-anomalies?limit=200"
 ```
 
 Move or replace the building with `/commands/move-building` or `/commands/place-building`, then re-check the anomaly endpoint.
@@ -37,6 +37,8 @@ Move or replace the building with `/commands/move-building` or `/commands/place-
 
 `/commands/save` uses CS1's normal save panel path and writes asynchronously. Poll `/state/saves` after requesting a save, or use:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\save-city.ps1 -Name AgentAutoSave-clean
+```bash
+curl -s -X POST http://127.0.0.1:32123/commands/save \
+  -H "Content-Type: application/json" \
+  -d '{"name":"AgentAutoSave-clean"}'
 ```

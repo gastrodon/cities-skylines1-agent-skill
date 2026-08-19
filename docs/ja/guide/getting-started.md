@@ -62,9 +62,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-new-map.ps1 
 
 都市がロードされたら確認します。
 
-```powershell
-Invoke-RestMethod http://127.0.0.1:32123/health
-Invoke-RestMethod http://127.0.0.1:32123/state/summary
+```bash
+curl -s http://127.0.0.1:32123/health
+curl -s http://127.0.0.1:32123/state/summary
 ```
 
 より広い読み取りと dry-run コマンド確認には `scripts/smoke-test.ps1` を使います。

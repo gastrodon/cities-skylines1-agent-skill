@@ -1,11 +1,11 @@
 ---
-name: cities-skylines1-agent-skill
+name: mayor
 description: "Operate Cities: Skylines 1 through the Skylines Agent Bridge mod and localhost API. Use when Codex needs to build, inspect, repair, resume, save, or continue a CS1 city using focused API calls rather than screenshot recognition, including road connectivity, service infrastructure, zoning, facilities, problem icons, and save verification."
 ---
 
 # Cities: Skylines 1 Agent Skill
 
-Use this skill to control a running Cities: Skylines 1 city through the local Skylines Agent Bridge API.
+Use this skill to control a running Cities: Skylines 1 city through the local Skylines Agent Bridge API at `http://127.0.0.1:32123`.
 
 ## Core Rules
 
@@ -15,49 +15,36 @@ Use this skill to control a running Cities: Skylines 1 city through the local Sk
 - Save after meaningful city changes and verify the `.crp` file exists.
 - Commit repository changes after each coherent code/docs task when working inside this repository.
 
-## Local Setup
+## API Reference
 
-The bridge listens on:
-
-```text
-http://127.0.0.1:32123
-```
-
-Build and install the mod:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build.ps1
-```
-
-Resume the latest save:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-resume.ps1
-```
-
-Start a new map only when the user asks:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-new-map.ps1
-```
+This file covers the common inspect/repair/save loop below. The mod exposes
+32 routes total (state reads, prefab lookups, and commands), including some
+not used here: `/state/demand`, `/state/growables`,
+`/state/external-connections`, `/state/saves`, `/prefabs/roads`,
+`/prefabs/networks`, `/prefabs/buildings`, `/commands/build-road`,
+`/commands/move-building`, `/commands/set-building-active`,
+`/commands/disable-blocked-assets`, `/commands/repair-zones-to-growables`,
+`/commands/repair-zone-clusters`, `/commands/batch`. See
+[docs/api.md](docs/api.md) for the complete reference with full request and
+response shapes.
 
 ## Inspection Loop
 
 Use these before acting:
 
-```powershell
-Invoke-RestMethod http://127.0.0.1:32123/health
-Invoke-RestMethod http://127.0.0.1:32123/state/summary
-Invoke-RestMethod "http://127.0.0.1:32123/state/chirps?limit=50"
-Invoke-RestMethod http://127.0.0.1:32123/state/zones
-Invoke-RestMethod "http://127.0.0.1:32123/state/problems?limit=200"
-Invoke-RestMethod "http://127.0.0.1:32123/state/economy"
-Invoke-RestMethod "http://127.0.0.1:32123/state/road-anomalies?limit=500&nearMissDistance=18&shortSegmentLength=32&includeDeadEnds=false"
-Invoke-RestMethod "http://127.0.0.1:32123/state/building-anomalies?limit=200"
-Invoke-RestMethod "http://127.0.0.1:32123/state/zone-anomalies?limit=200&includeUnzonedHoles=true"
-Invoke-RestMethod "http://127.0.0.1:32123/state/facilities?limit=500"
-Invoke-RestMethod "http://127.0.0.1:32123/state/growables?limit=500"
-Invoke-RestMethod "http://127.0.0.1:32123/state/networks?limit=1000&service=Road"
+```bash
+curl -s http://127.0.0.1:32123/health
+curl -s http://127.0.0.1:32123/state/summary
+curl -s "http://127.0.0.1:32123/state/chirps?limit=50"
+curl -s http://127.0.0.1:32123/state/zones
+curl -s "http://127.0.0.1:32123/state/problems?limit=200"
+curl -s "http://127.0.0.1:32123/state/economy"
+curl -s "http://127.0.0.1:32123/state/road-anomalies?limit=500&nearMissDistance=18&shortSegmentLength=32&includeDeadEnds=false"
+curl -s "http://127.0.0.1:32123/state/building-anomalies?limit=200"
+curl -s "http://127.0.0.1:32123/state/zone-anomalies?limit=200&includeUnzonedHoles=true"
+curl -s "http://127.0.0.1:32123/state/facilities?limit=500"
+curl -s "http://127.0.0.1:32123/state/growables?limit=500"
+curl -s "http://127.0.0.1:32123/state/networks?limit=1000&service=Road"
 ```
 
 Use `includeMapObjects=true` on `/state/facilities` only when raw helper objects such as pipe junctions are needed.
@@ -68,56 +55,64 @@ Use separate commands so the repair remains auditable.
 
 Delete a bad segment:
 
-```powershell
-$body = @{ entityType = "netSegment"; id = 19023; keepNodes = $false } | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri http://127.0.0.1:32123/commands/bulldoze -Body $body -ContentType "application/json"
+```bash
+curl -s -X POST http://127.0.0.1:32123/commands/bulldoze \
+  -H "Content-Type: application/json" \
+  -d '{"entityType":"netSegment","id":19023,"keepNodes":false}'
 ```
 
 Build a network segment:
 
-```powershell
-$body = @{
-  roadPrefab = "Basic Road"
-  start = @{ x = 400; z = 300 }
-  end = @{ x = 423.614; z = 554.945 }
-  name = "Agent Highway Link"
-} | ConvertTo-Json -Depth 5
-Invoke-RestMethod -Method Post -Uri http://127.0.0.1:32123/commands/build-network -Body $body -ContentType "application/json"
+```bash
+curl -s -X POST http://127.0.0.1:32123/commands/build-network \
+  -H "Content-Type: application/json" \
+  -d '{
+    "roadPrefab": "Basic Road",
+    "start": {"x": 400, "z": 300},
+    "end": {"x": 423.614, "z": 554.945},
+    "name": "Agent Highway Link"
+  }'
 ```
 
 Place or move a building:
 
-```powershell
-$body = @{ buildingPrefab = "Water Tower"; position = @{ x = 120; z = -220 }; angleDegrees = 0 } | ConvertTo-Json -Depth 5
-Invoke-RestMethod -Method Post -Uri http://127.0.0.1:32123/commands/place-building -Body $body -ContentType "application/json"
+```bash
+curl -s -X POST http://127.0.0.1:32123/commands/place-building \
+  -H "Content-Type: application/json" \
+  -d '{"buildingPrefab":"Water Tower","position":{"x":120,"z":-220},"angleDegrees":0}'
 ```
 
 Paint zones:
 
-```powershell
-$body = @{ zone = "ResidentialLow"; preserveOccupied = $true; center = @{ x = 240; z = -40 }; radius = 70 } | ConvertTo-Json -Depth 5
-Invoke-RestMethod -Method Post -Uri http://127.0.0.1:32123/commands/set-zone -Body $body -ContentType "application/json"
+```bash
+curl -s -X POST http://127.0.0.1:32123/commands/set-zone \
+  -H "Content-Type: application/json" \
+  -d '{"zone":"ResidentialLow","preserveOccupied":true,"center":{"x":240,"z":-40},"radius":70}'
 ```
 
 Run simulation:
 
-```powershell
-$body = @{ paused = $false; speed = 3 } | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri http://127.0.0.1:32123/commands/set-simulation-speed -Body $body -ContentType "application/json"
+```bash
+curl -s -X POST http://127.0.0.1:32123/commands/set-simulation-speed \
+  -H "Content-Type: application/json" \
+  -d '{"paused":false,"speed":3}'
 ```
 
 Lower taxes when `/state/problems` reports `TaxesTooHigh`:
 
-```powershell
-$body = @{ service = "Commercial"; rate = 9 } | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri http://127.0.0.1:32123/commands/set-tax-rate -Body $body -ContentType "application/json"
+```bash
+curl -s -X POST http://127.0.0.1:32123/commands/set-tax-rate \
+  -H "Content-Type: application/json" \
+  -d '{"service":"Commercial","rate":9}'
 ```
 
 Save and verify:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\save-city.ps1 -Name AgentAutoSave-clean
-Invoke-RestMethod http://127.0.0.1:32123/state/saves
+```bash
+curl -s -X POST http://127.0.0.1:32123/commands/save \
+  -H "Content-Type: application/json" \
+  -d '{"name":"AgentAutoSave-clean"}'
+curl -s http://127.0.0.1:32123/state/saves
 ```
 
 ## Known Gotchas

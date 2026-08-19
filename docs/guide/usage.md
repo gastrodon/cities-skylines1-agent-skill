@@ -14,15 +14,15 @@ The bridge is designed for cautious, inspect-first city operations. Agents shoul
 
 ## Inspection Commands
 
-```powershell
-Invoke-RestMethod http://127.0.0.1:32123/health
-Invoke-RestMethod http://127.0.0.1:32123/state/summary
-Invoke-RestMethod http://127.0.0.1:32123/state/demand
-Invoke-RestMethod "http://127.0.0.1:32123/state/problems?limit=200"
-Invoke-RestMethod "http://127.0.0.1:32123/state/road-anomalies?limit=500&nearMissDistance=18&shortSegmentLength=32&includeDeadEnds=false"
-Invoke-RestMethod "http://127.0.0.1:32123/state/building-anomalies?limit=200"
-Invoke-RestMethod "http://127.0.0.1:32123/state/facilities?limit=500"
-Invoke-RestMethod "http://127.0.0.1:32123/state/networks?limit=1000&service=Road"
+```bash
+curl -s http://127.0.0.1:32123/health
+curl -s http://127.0.0.1:32123/state/summary
+curl -s http://127.0.0.1:32123/state/demand
+curl -s "http://127.0.0.1:32123/state/problems?limit=200"
+curl -s "http://127.0.0.1:32123/state/road-anomalies?limit=500&nearMissDistance=18&shortSegmentLength=32&includeDeadEnds=false"
+curl -s "http://127.0.0.1:32123/state/building-anomalies?limit=200"
+curl -s "http://127.0.0.1:32123/state/facilities?limit=500"
+curl -s "http://127.0.0.1:32123/state/networks?limit=1000&service=Road"
 ```
 
 Use `includeMapObjects=true` on `/state/facilities` only when raw helper buildings, such as pipe or heating junctions, are needed.

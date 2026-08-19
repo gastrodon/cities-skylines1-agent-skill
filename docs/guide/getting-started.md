@@ -62,9 +62,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-new-map.ps1 
 
 Once a city is loaded:
 
-```powershell
-Invoke-RestMethod http://127.0.0.1:32123/health
-Invoke-RestMethod http://127.0.0.1:32123/state/summary
+```bash
+curl -s http://127.0.0.1:32123/health
+curl -s http://127.0.0.1:32123/state/summary
 ```
 
 Use `scripts/smoke-test.ps1` for a broader read and dry-run command check.

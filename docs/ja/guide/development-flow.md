@@ -15,7 +15,7 @@
 
 機能ブランチは `develop` から切り、Pull Request も `develop` に向けます。
 
-```powershell
+```bash
 git fetch --prune origin
 git switch develop
 git pull --ff-only origin develop
@@ -24,7 +24,7 @@ git switch -c codex/feature/<short-topic>
 
 PR を出す前に、軽量なドキュメント検証を実行します。
 
-```powershell
+```bash
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\check-doc-links.ps1
 pushd docs
 npm install

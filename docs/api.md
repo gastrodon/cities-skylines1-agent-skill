@@ -42,8 +42,8 @@ Returns a small city snapshot: game time, build index, network counts, citizen c
 Returns the three demand bars shown in the CS1 UI: residential, commercial,
 and workplace demand. Values are `0..100`.
 
-```powershell
-Invoke-RestMethod http://127.0.0.1:32123/state/demand
+```bash
+curl -s http://127.0.0.1:32123/state/demand
 ```
 
 ## GET /state/chirps
@@ -53,8 +53,8 @@ sender name, sender id, text, message type, and message metadata when available.
 This is useful for reading citizen feedback such as housing demand, tax,
 traffic, service, and city satisfaction comments without OCR.
 
-```powershell
-Invoke-RestMethod "http://127.0.0.1:32123/state/chirps?limit=50"
+```bash
+curl -s "http://127.0.0.1:32123/state/chirps?limit=50"
 ```
 
 ## GET /state/zones
@@ -63,8 +63,8 @@ Returns zoning cell counts and approximate area by zone type. CS1 zoning cells
 are reported as 8m x 8m cells, so `areaSquareMeters` is approximate but useful
 for comparing residential, commercial, industrial, office, and unzoned area.
 
-```powershell
-Invoke-RestMethod http://127.0.0.1:32123/state/zones
+```bash
+curl -s http://127.0.0.1:32123/state/zones
 ```
 
 ## GET /state/growables
@@ -74,8 +74,8 @@ buildings with service, sub-service, footprint size, position, active/abandoned
 state, and problem flags. Use this before zoning to avoid painting over already
 developed blocks.
 
-```powershell
-Invoke-RestMethod "http://127.0.0.1:32123/state/growables?limit=500"
+```bash
+curl -s "http://127.0.0.1:32123/state/growables?limit=500"
 ```
 
 ## GET /prefabs/roads
@@ -128,8 +128,8 @@ Returns the currently configured tax rates for zoned residential, commercial,
 industrial, and office sub-services across levels. `aggregateTaxRates` mirrors
 the six tax sliders shown in the CS1 budget UI.
 
-```powershell
-Invoke-RestMethod http://127.0.0.1:32123/state/economy
+```bash
+curl -s http://127.0.0.1:32123/state/economy
 ```
 
 ## GET /state/facilities
@@ -143,11 +143,11 @@ By default this excludes internal pipe helper buildings such as `Water Pipe
 Junction` and `Heating Pipe Junction`; pass `includeMapObjects=true` when an
 agent specifically needs raw map objects.
 
-```powershell
-Invoke-RestMethod http://127.0.0.1:32123/state/facilities?limit=500
-Invoke-RestMethod http://127.0.0.1:32123/state/facilities?service=HealthCare
-Invoke-RestMethod http://127.0.0.1:32123/state/facilities?service=PoliceDepartment
-Invoke-RestMethod http://127.0.0.1:32123/state/facilities?includeMapObjects=true
+```bash
+curl -s "http://127.0.0.1:32123/state/facilities?limit=500"
+curl -s "http://127.0.0.1:32123/state/facilities?service=HealthCare"
+curl -s "http://127.0.0.1:32123/state/facilities?service=PoliceDepartment"
+curl -s "http://127.0.0.1:32123/state/facilities?includeMapObjects=true"
 ```
 
 The response includes:
@@ -188,10 +188,10 @@ Returns current network segments from CS1 data, without screenshots. Optional
 service filtering is useful for checking roads, water pipes, heating pipes, and
 power lines separately.
 
-```powershell
-Invoke-RestMethod http://127.0.0.1:32123/state/networks?service=Road
-Invoke-RestMethod http://127.0.0.1:32123/state/networks?service=Water
-Invoke-RestMethod http://127.0.0.1:32123/state/networks?limit=1000
+```bash
+curl -s "http://127.0.0.1:32123/state/networks?service=Road"
+curl -s "http://127.0.0.1:32123/state/networks?service=Water"
+curl -s "http://127.0.0.1:32123/state/networks?limit=1000"
 ```
 
 Each segment includes `id`, `prefab`, `service`, `subService`, `problems`,
@@ -202,8 +202,8 @@ Each segment includes `id`, `prefab`, `service`, `subService`, `problems`,
 Detects road geometry that can look connected on screen but is not actually a
 proper CS1 road graph connection.
 
-```powershell
-Invoke-RestMethod "http://127.0.0.1:32123/state/road-anomalies?nearMissDistance=18&shortSegmentLength=32&includeDeadEnds=true"
+```bash
+curl -s "http://127.0.0.1:32123/state/road-anomalies?nearMissDistance=18&shortSegmentLength=32&includeDeadEnds=true"
 ```
 
 Detected anomaly types:
@@ -238,8 +238,8 @@ nodes. This is useful when a city visually has highways nearby but no outside
 cars enter because the local road graph is still separate from the highway
 network.
 
-```powershell
-Invoke-RestMethod "http://127.0.0.1:32123/state/external-connections?limit=50"
+```bash
+curl -s "http://127.0.0.1:32123/state/external-connections?limit=50"
 ```
 
 The response includes `cityConnectedToOutside`,
@@ -252,8 +252,8 @@ Detects service buildings whose footprint intersects a road segment. This is
 for API-side QA when a building appears to be placed through a road, without
 using screenshots.
 
-```powershell
-Invoke-RestMethod http://127.0.0.1:32123/state/building-anomalies?limit=200
+```bash
+curl -s "http://127.0.0.1:32123/state/building-anomalies?limit=200"
 ```
 
 ## GET /state/zone-anomalies
@@ -262,8 +262,8 @@ Detects mottled zoning from CS1 zone blocks without using screenshots. This is
 useful when circular or overlapping zone paint leaves residential, commercial,
 industrial, office, and unzoned cells mixed inside the same block.
 
-```powershell
-Invoke-RestMethod "http://127.0.0.1:32123/state/zone-anomalies?limit=200&includeUnzonedHoles=true"
+```bash
+curl -s "http://127.0.0.1:32123/state/zone-anomalies?limit=200&includeUnzonedHoles=true"
 ```
 
 Detected anomaly types:
@@ -410,8 +410,8 @@ Turns an existing building on or off by id.
 Disables known broken assets in CS1's package asset state so the game should not
 use them. The current blocked family is `Block Services - ...`.
 
-```powershell
-Invoke-RestMethod -Method Post -Uri http://127.0.0.1:32123/commands/disable-blocked-assets
+```bash
+curl -s -X POST http://127.0.0.1:32123/commands/disable-blocked-assets
 ```
 
 ## POST /commands/bulldoze
@@ -419,14 +419,10 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:32123/commands/disable-bloc
 Deletes a problem entity by API. Useful for agent-side repair loops after
 reading `/state/problems`.
 
-```powershell
-$body = @{
-  entityType = "netSegment"
-  id = 21778
-  keepNodes = $false
-} | ConvertTo-Json
-
-Invoke-RestMethod -Method Post -Uri http://127.0.0.1:32123/commands/bulldoze -Body $body -ContentType "application/json"
+```bash
+curl -s -X POST http://127.0.0.1:32123/commands/bulldoze \
+  -H "Content-Type: application/json" \
+  -d '{"entityType":"netSegment","id":21778,"keepNodes":false}'
 ```
 
 Supported `entityType` values:
@@ -441,19 +437,18 @@ Requests an in-game save through CS1's `SavePanel.SaveGame`, the same code path
 used by the normal UI save button. The game writes the `.crp` package
 asynchronously, so poll `/state/saves` until the returned file appears.
 
-```powershell
-$body = @{ name = "AgentAutoSave-20260512-1900" } | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri http://127.0.0.1:32123/commands/save -Body $body -ContentType "application/json"
-
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\save-city.ps1 -Name AgentAutoSave-test
+```bash
+curl -s -X POST http://127.0.0.1:32123/commands/save \
+  -H "Content-Type: application/json" \
+  -d '{"name":"AgentAutoSave-20260512-1900"}'
 ```
 
 ## GET /state/saves
 
 Lists local `.crp` saves with paths, timestamps, and file sizes.
 
-```powershell
-Invoke-RestMethod http://127.0.0.1:32123/state/saves
+```bash
+curl -s http://127.0.0.1:32123/state/saves
 ```
 
 ## POST /commands/set-simulation-speed

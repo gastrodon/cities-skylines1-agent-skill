@@ -33,8 +33,8 @@ http://127.0.0.1:32123
 
 CS1 UI に表示される3本の需要バー、住宅・商業・職場需要を返します。値は `0..100` です。
 
-```powershell
-Invoke-RestMethod http://127.0.0.1:32123/state/demand
+```bash
+curl -s http://127.0.0.1:32123/state/demand
 ```
 
 ## GET /state/chirps
@@ -43,16 +43,16 @@ CS1 の message manager から、最近の Chirper/市民メッセージを返�
 送信者名、sender id、本文、メッセージ種別、取得できる場合は message id やタグも含みます。
 住宅需要、税金、交通、サービス、市民満足度などの声を OCR なしで読むための API です。
 
-```powershell
-Invoke-RestMethod "http://127.0.0.1:32123/state/chirps?limit=50"
+```bash
+curl -s "http://127.0.0.1:32123/state/chirps?limit=50"
 ```
 
 ## GET /state/zones
 
 ゾーン種別ごとのセル数と概算面積を返します。CS1 の zoning cell は 8m x 8m として扱い、`areaSquareMeters` は住宅・商業・産業・オフィス・未指定の面積比較に使うための概算値です。
 
-```powershell
-Invoke-RestMethod http://127.0.0.1:32123/state/zones
+```bash
+curl -s http://127.0.0.1:32123/state/zones
 ```
 
 ## GET /state/growables
@@ -60,8 +60,8 @@ Invoke-RestMethod http://127.0.0.1:32123/state/zones
 既に建っている住宅・商業・産業・オフィスの growable 建物を返します。
 service、subService、建物サイズ、位置、有効/廃墟状態、問題フラグを含むため、ゾーンを塗る前に既存の街区を避けられます。
 
-```powershell
-Invoke-RestMethod "http://127.0.0.1:32123/state/growables?limit=500"
+```bash
+curl -s "http://127.0.0.1:32123/state/growables?limit=500"
 ```
 
 ## GET /prefabs/roads
@@ -111,8 +111,8 @@ building では `Abandoned`、`BurnedDown`、`Collapsed`、`Flooded`、
 
 住宅・商業・産業・オフィス系ゾーンの税率を返します。`aggregateTaxRates` は CS1 の予算 UI に表示される6つの税率スライダーと同じ値です。
 
-```powershell
-Invoke-RestMethod http://127.0.0.1:32123/state/economy
+```bash
+curl -s http://127.0.0.1:32123/state/economy
 ```
 
 ## GET /state/facilities
@@ -121,19 +121,19 @@ Invoke-RestMethod http://127.0.0.1:32123/state/economy
 
 通常は `Water Pipe Junction` や `Heating Pipe Junction` のような内部ヘルパー建物を除外します。必要な場合だけ `includeMapObjects=true` を渡します。
 
-```powershell
-Invoke-RestMethod http://127.0.0.1:32123/state/facilities?limit=500
-Invoke-RestMethod http://127.0.0.1:32123/state/facilities?service=HealthCare
-Invoke-RestMethod http://127.0.0.1:32123/state/facilities?includeMapObjects=true
+```bash
+curl -s "http://127.0.0.1:32123/state/facilities?limit=500"
+curl -s "http://127.0.0.1:32123/state/facilities?service=HealthCare"
+curl -s "http://127.0.0.1:32123/state/facilities?includeMapObjects=true"
 ```
 
 ## GET /state/networks
 
 道路、配管、暖房管、電線などのネットワークセグメントを返します。
 
-```powershell
-Invoke-RestMethod http://127.0.0.1:32123/state/networks?service=Road
-Invoke-RestMethod http://127.0.0.1:32123/state/networks?limit=1000
+```bash
+curl -s "http://127.0.0.1:32123/state/networks?service=Road"
+curl -s "http://127.0.0.1:32123/state/networks?limit=1000"
 ```
 
 ## GET /state/road-anomalies
@@ -144,8 +144,8 @@ Invoke-RestMethod http://127.0.0.1:32123/state/networks?limit=1000
 `roadBelowLocalGrade` は、Agent が作った地表道路だけが周囲の街路より大きく
 沈んでいるケースを返します。
 
-```powershell
-Invoke-RestMethod "http://127.0.0.1:32123/state/road-anomalies?nearMissDistance=18&shortSegmentLength=32&includeDeadEnds=true"
+```bash
+curl -s "http://127.0.0.1:32123/state/road-anomalies?nearMissDistance=18&shortSegmentLength=32&includeDeadEnds=true"
 ```
 
 ## GET /state/external-connections
@@ -153,8 +153,8 @@ Invoke-RestMethod "http://127.0.0.1:32123/state/road-anomalies?nearMissDistance=
 街のローカル道路コンポーネントが CS1 の外部道路ノードにつながっているかを
 返します。高速道路が見えているのに外部から車が来ない場合の確認に使えます。
 
-```powershell
-Invoke-RestMethod "http://127.0.0.1:32123/state/external-connections?limit=50"
+```bash
+curl -s "http://127.0.0.1:32123/state/external-connections?limit=50"
 ```
 
 `cityConnectedToOutside`、`disconnectedLocalRoadComponents`、外部ノード数、
@@ -164,8 +164,8 @@ Invoke-RestMethod "http://127.0.0.1:32123/state/external-connections?limit=50"
 
 サービス施設の footprint が道路セグメントと交差していないかを検出します。
 
-```powershell
-Invoke-RestMethod http://127.0.0.1:32123/state/building-anomalies?limit=200
+```bash
+curl -s "http://127.0.0.1:32123/state/building-anomalies?limit=200"
 ```
 
 ## GET /state/zone-anomalies
@@ -173,8 +173,8 @@ Invoke-RestMethod http://127.0.0.1:32123/state/building-anomalies?limit=200
 CS1 の zoning block を直接読み、斑になった区画をスクリーンショットなしで検出します。
 円形塗りや重ね塗りのあとに、住宅・商業・産業・オフィス・未指定が同じブロック内で混ざった状態を拾うための API です。
 
-```powershell
-Invoke-RestMethod "http://127.0.0.1:32123/state/zone-anomalies?limit=200&includeUnzonedHoles=true"
+```bash
+curl -s "http://127.0.0.1:32123/state/zone-anomalies?limit=200&includeUnzonedHoles=true"
 ```
 
 検出する anomaly type:
@@ -283,22 +283,18 @@ Invoke-RestMethod "http://127.0.0.1:32123/state/zone-anomalies?limit=200&include
 
 CS1 の package asset state 上で既知の壊れたアセットを無効化し、ゲームが使用しないようにします。現在は `Block Services - ...` 系を対象にします。
 
-```powershell
-Invoke-RestMethod -Method Post -Uri http://127.0.0.1:32123/commands/disable-blocked-assets
+```bash
+curl -s -X POST http://127.0.0.1:32123/commands/disable-blocked-assets
 ```
 
 ## POST /commands/bulldoze
 
 問題のある building、netSegment、netNode を削除します。
 
-```powershell
-$body = @{
-  entityType = "netSegment"
-  id = 21778
-  keepNodes = $false
-} | ConvertTo-Json
-
-Invoke-RestMethod -Method Post -Uri http://127.0.0.1:32123/commands/bulldoze -Body $body -ContentType "application/json"
+```bash
+curl -s -X POST http://127.0.0.1:32123/commands/bulldoze \
+  -H "Content-Type: application/json" \
+  -d '{"entityType":"netSegment","id":21778,"keepNodes":false}'
 ```
 
 ## POST /commands/save
