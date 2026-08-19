@@ -4,6 +4,13 @@ namespace SkylinesAgentBridge
 {
     public static class SimulationCommands
     {
+        public static CommandResult Quit()
+        {
+            LoadingManager manager = Singleton<LoadingManager>.instance;
+            manager.QuitApplication();
+            return CommandResult.FromJson("{\"ok\":true,\"message\":\"Quit requested. The process will exit after the fade-out coroutine finishes.\"}");
+        }
+
         public static CommandResult SetSimulationSpeed(string body)
         {
             bool paused = JsonUtil.GetBool(body, "paused", false);

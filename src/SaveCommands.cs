@@ -1,4 +1,5 @@
 using ColossalFramework;
+using ColossalFramework.Packaging;
 using System;
 using System.IO;
 using UnityEngine;
@@ -7,6 +8,57 @@ namespace SkylinesAgentBridge
 {
     public static class SaveCommands
     {
+        public static CommandResult LoadSave(string body)
+        {
+            string name = JsonUtil.GetString(body, "name", "");
+            Package.Asset asset;
+
+            if (name != null && name.Trim().Length > 0)
+            {
+                asset = FindSaveAssetByName(name.Trim());
+                if (asset == null)
+                {
+                    return CommandResult.Fail("No save named '" + name.Trim() + "' was found. Check /state/saves.");
+                }
+            }
+            else
+            {
+                asset = SaveHelper.GetLatestSaveGame();
+                if (asset == null)
+                {
+                    return CommandResult.Fail("No save games were found. Save the city first with /commands/save.");
+                }
+            }
+
+            SaveGameMetaData meta = asset.Instantiate<SaveGameMetaData>();
+            if (meta == null)
+            {
+                return CommandResult.Fail("Save metadata could not be read for '" + asset.name + "'.");
+            }
+
+            SimulationMetaData simMeta = new SimulationMetaData();
+            simMeta.m_CityName = meta.cityName;
+            simMeta.m_updateMode = SimulationManager.UpdateMode.LoadGame;
+
+            Singleton<LoadingManager>.instance.LoadLevel(meta.assetRef, "Game", "InGame", simMeta);
+
+            return CommandResult.FromJson("{\"ok\":true,\"loading\":true,\"cityName\":\"" + JsonUtil.Escape(meta.cityName) +
+                "\",\"saveName\":\"" + JsonUtil.Escape(asset.name) +
+                "\",\"message\":\"Level unload/load started in-process. Poll /health until levelLoaded is true again, then re-check /state/summary.\"}");
+        }
+
+        private static Package.Asset FindSaveAssetByName(string name)
+        {
+            foreach (Package.Asset item in PackageManager.FilterAssets(UserAssetType.SaveGameMetaData))
+            {
+                if (item != null && item.isEnabled && string.Compare(item.name, name, StringComparison.OrdinalIgnoreCase) == 0)
+                {
+                    return item;
+                }
+            }
+            return null;
+        }
+
         public static CommandResult Save(string body)
         {
             string name = JsonUtil.GetString(body, "name", "");
@@ -104,8 +156,8 @@ namespace SkylinesAgentBridge
 
         private static string GetLocalSaveDirectory()
         {
-            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Colossal Order\\Cities_Skylines\\Saves");
+            string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            return Path.Combine(Path.Combine(Path.Combine(local, "Colossal Order"), "Cities_Skylines"), "Saves");
         }
 
         private static string SanitizeName(string name)

@@ -703,6 +703,153 @@ namespace SkylinesAgentBridge
                 ",\"segments\":[" + items.ToString() + "]}");
         }
 
+        public static CommandResult BuildTrafficJson(int limit)
+        {
+            if (limit < 0)
+            {
+                limit = 0;
+            }
+            if (limit > 500)
+            {
+                limit = 500;
+            }
+
+            VehicleManager vehicles = VehicleManager.instance;
+            NetManager net = NetManager.instance;
+
+            long densitySum = 0;
+            int roadSegmentCount = 0;
+            int congestedCount = 0;
+
+            for (ushort i = 1; i < net.m_segments.m_buffer.Length; i++)
+            {
+                NetSegment segment = net.m_segments.m_buffer[i];
+                if ((segment.m_flags & NetSegment.Flags.Created) == NetSegment.Flags.None)
+                {
+                    continue;
+                }
+
+                NetInfo info = segment.Info;
+                if (info == null || info.m_class == null || info.m_class.m_service != ItemClass.Service.Road)
+                {
+                    continue;
+                }
+
+                roadSegmentCount++;
+                densitySum += segment.m_trafficDensity;
+                if (segment.m_trafficDensity >= 70)
+                {
+                    congestedCount++;
+                }
+            }
+
+            float averageDensity = roadSegmentCount > 0 ? (float)densitySum / roadSegmentCount : 0f;
+            float instantFlowEstimate = 100f - averageDensity;
+
+            ushort[] topIds = new ushort[limit];
+            byte[] topDensity = new byte[limit];
+            int topCount = 0;
+
+            if (limit > 0)
+            {
+                for (ushort i = 1; i < net.m_segments.m_buffer.Length; i++)
+                {
+                    NetSegment segment = net.m_segments.m_buffer[i];
+                    if ((segment.m_flags & NetSegment.Flags.Created) == NetSegment.Flags.None)
+                    {
+                        continue;
+                    }
+
+                    NetInfo info = segment.Info;
+                    if (info == null || info.m_class == null || info.m_class.m_service != ItemClass.Service.Road)
+                    {
+                        continue;
+                    }
+
+                    byte density = segment.m_trafficDensity;
+
+                    if (topCount < limit)
+                    {
+                        topIds[topCount] = i;
+                        topDensity[topCount] = density;
+                        topCount++;
+                        if (topCount == limit)
+                        {
+                            SortTopByDensityDescending(topIds, topDensity, topCount);
+                        }
+                    }
+                    else if (density > topDensity[topCount - 1])
+                    {
+                        topIds[topCount - 1] = i;
+                        topDensity[topCount - 1] = density;
+                        SortTopByDensityDescending(topIds, topDensity, topCount);
+                    }
+                }
+
+                if (topCount < limit)
+                {
+                    SortTopByDensityDescending(topIds, topDensity, topCount);
+                }
+            }
+
+            StringBuilder items = new StringBuilder();
+            for (int i = 0; i < topCount; i++)
+            {
+                ushort segId = topIds[i];
+                NetSegment segment = net.m_segments.m_buffer[segId];
+                NetInfo info = segment.Info;
+                Vector3 middle = segment.m_middlePosition;
+                string segmentName = net.GetSegmentName(segId);
+
+                if (i > 0)
+                {
+                    items.Append(",");
+                }
+
+                items.Append("{\"id\":").Append(segId);
+                items.Append(",\"trafficDensity\":").Append(topDensity[i]);
+                items.Append(",\"prefab\":\"").Append(JsonUtil.Escape(info != null ? info.name : "")).Append("\"");
+                items.Append(",\"name\":\"").Append(JsonUtil.Escape(segmentName)).Append("\"");
+                items.Append(",\"position\":{\"x\":").Append(JsonUtil.Number(middle.x));
+                items.Append(",\"y\":").Append(JsonUtil.Number(middle.y));
+                items.Append(",\"z\":").Append(JsonUtil.Number(middle.z)).Append("}}");
+            }
+
+            StringBuilder json = new StringBuilder();
+            json.Append("{\"ok\":true");
+            json.Append(",\"cityTrafficFlow\":").Append(vehicles.m_lastTrafficFlow);
+            json.Append(",\"cityTrafficFlowNote\":\"Same 0-100 value as the in-game Traffic info view (VehicleManager.m_lastTrafficFlow). Refreshes roughly every 256 simulation frames, not every call.\"");
+            json.Append(",\"instantAverageCongestion\":").Append(JsonUtil.Number(averageDensity));
+            json.Append(",\"instantFlowEstimate\":").Append(JsonUtil.Number(instantFlowEstimate));
+            json.Append(",\"instantEstimateNote\":\"instantFlowEstimate = 100 - average NetSegment.m_trafficDensity across road segments. It updates every call, unlike cityTrafficFlow, but is only an approximation of the official metric.\"");
+            json.Append(",\"roadSegmentCount\":").Append(roadSegmentCount);
+            json.Append(",\"congestedSegmentCount\":").Append(congestedCount);
+            json.Append(",\"vehicleCount\":").Append(vehicles.m_vehicleCount);
+            json.Append(",\"finalVehicleCount\":").Append(vehicles.m_finalVehicleCount);
+            json.Append(",\"topCongestedSegments\":[").Append(items.ToString()).Append("]");
+            json.Append("}");
+
+            return CommandResult.FromJson(json.ToString());
+        }
+
+        private static void SortTopByDensityDescending(ushort[] ids, byte[] density, int count)
+        {
+            for (int i = 1; i < count; i++)
+            {
+                ushort idKey = ids[i];
+                byte densKey = density[i];
+                int j = i - 1;
+                while (j >= 0 && density[j] < densKey)
+                {
+                    density[j + 1] = density[j];
+                    ids[j + 1] = ids[j];
+                    j--;
+                }
+                density[j + 1] = densKey;
+                ids[j + 1] = idKey;
+            }
+        }
+
         public static CommandResult BuildRoadAnomaliesJson(int limit, float nearMissDistance, float shortSegmentLength, bool includeDeadEnds)
         {
             if (limit < 0)

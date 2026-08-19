@@ -158,6 +158,12 @@ namespace SkylinesAgentBridge
                 return RunOnGameThread(request, delegate { return GameState.BuildNetworksJson(limit, service); });
             }
 
+            if (request.Method == "GET" && request.Path == "/state/traffic")
+            {
+                int limit = request.GetQueryInt("limit", 25);
+                return RunOnGameThread(request, delegate { return GameState.BuildTrafficJson(limit); });
+            }
+
             if (request.Method == "GET" && request.Path == "/state/road-anomalies")
             {
                 int limit = request.GetQueryInt("limit", 200);
@@ -287,6 +293,17 @@ namespace SkylinesAgentBridge
                 return RunOnGameThread(request, delegate { return SaveCommands.Save(body); });
             }
 
+            if (request.Method == "POST" && request.Path == "/commands/load-save")
+            {
+                string body = request.Body;
+                return RunOnGameThread(request, delegate { return SaveCommands.LoadSave(body); });
+            }
+
+            if (request.Method == "POST" && request.Path == "/commands/quit")
+            {
+                return RunOnGameThread(request, SimulationCommands.Quit);
+            }
+
             if (request.Method == "POST" && request.Path == "/commands/batch")
             {
                 string body = request.Body;
@@ -327,6 +344,7 @@ namespace SkylinesAgentBridge
                 if (request.Path == "/state/facilities") return "Read facilities";
                 if (request.Path == "/state/growables") return "Read growable buildings";
                 if (request.Path == "/state/networks") return "Read networks";
+                if (request.Path == "/state/traffic") return "Read traffic flow";
                 if (request.Path == "/state/road-anomalies") return "Inspect road anomalies";
                 if (request.Path == "/state/external-connections") return "Inspect external connections";
                 if (request.Path == "/state/building-anomalies") return "Inspect building placement";
@@ -388,6 +406,17 @@ namespace SkylinesAgentBridge
             if (request.Path == "/commands/save")
             {
                 return "Save city " + JsonUtil.GetString(body, "name", "AgentAutoSave");
+            }
+
+            if (request.Path == "/commands/load-save")
+            {
+                string loadName = JsonUtil.GetString(body, "name", "");
+                return "Load save " + (loadName.Length > 0 ? loadName : "(latest)");
+            }
+
+            if (request.Path == "/commands/quit")
+            {
+                return "Quit application";
             }
 
             if (request.Path == "/commands/set-simulation-speed")
