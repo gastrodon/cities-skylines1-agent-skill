@@ -31,7 +31,6 @@ sources=("$src"/*.cs)
 mcs \
   -target:library \
   -out:"$target" \
-  -debug:portable \
   -optimize+ \
   -define:TRACE \
   -reference:"$managed/ICities.dll" \
