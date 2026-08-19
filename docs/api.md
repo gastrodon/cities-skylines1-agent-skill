@@ -197,6 +197,36 @@ curl -s "http://127.0.0.1:32123/state/networks?limit=1000"
 Each segment includes `id`, `prefab`, `service`, `subService`, `problems`,
 `name`, `startNodeId`, `endNodeId`, `start`, `end`, and `middle`.
 
+## GET /state/traffic
+
+Returns the citywide traffic flow percentage CS1 itself uses (the same number
+shown in the in-game Traffic info view), plus a live estimate and a ranked
+list of the most congested road segments, so an agent can judge and target
+traffic fixes without reading the UI.
+
+```bash
+curl -s "http://127.0.0.1:32123/state/traffic?limit=25"
+```
+
+Response fields:
+
+- `cityTrafficFlow`: `VehicleManager.m_lastTrafficFlow`, `0..100`. This is the
+  official value CS1 uses, but it only refreshes roughly every 256 simulation
+  frames, so it can lag behind recent changes while the simulation is running.
+- `instantAverageCongestion` / `instantFlowEstimate`: computed on every call
+  from the live average of `NetSegment.m_trafficDensity` across all road
+  segments (`instantFlowEstimate = 100 - instantAverageCongestion`). This is
+  only an approximation of the official metric, but it updates immediately,
+  which is useful for checking a change had an effect before
+  `cityTrafficFlow` catches up.
+- `roadSegmentCount` / `congestedSegmentCount`: `congestedSegmentCount` counts
+  segments with `trafficDensity >= 70`.
+- `topCongestedSegments`: up to `limit` road segments sorted by
+  `trafficDensity` descending, each with `id`, `prefab`, `name`, and
+  `position`, so an agent can jump straight to the worst bottlenecks with
+  `/state/road-anomalies`, `/commands/bulldoze`, and `/commands/build-network`
+  instead of scanning the whole map.
+
 ## GET /state/road-anomalies
 
 Detects road geometry that can look connected on screen but is not actually a
@@ -414,6 +444,36 @@ use them. The current blocked family is `Block Services - ...`.
 curl -s -X POST http://127.0.0.1:32123/commands/disable-blocked-assets
 ```
 
+## GET /state/mods
+
+Lists installed C# mods (`ColossalFramework.Plugins.PluginManager` plugins),
+including workshop mods, with enabled state. `name` is the mod's folder name
+on disk (a numeric Workshop id for subscribed mods); `displayName` is the
+friendlier `IUserMod.Name` value shown in the Content Manager, when available.
+
+```bash
+curl -s http://127.0.0.1:32123/state/mods
+```
+
+## POST /commands/set-mod-enabled
+
+Enables or disables a mod at runtime by `name` (folder name) or `displayName`,
+matched case-insensitively, exact match preferred, otherwise falling back to a
+unique substring match. Persists like the Content Manager checkbox and invokes
+the mod's `OnEnabled`/`OnDisabled` if it implements one. Useful for isolating
+a crash: check `/state/problems` and the mod's own log lines, then disable a
+suspect mod without leaving the game.
+
+```bash
+curl -s -X POST http://127.0.0.1:32123/commands/set-mod-enabled \
+  -H "Content-Type: application/json" \
+  -d '{"name":"NodeController","enabled":false}'
+```
+
+Some mods patch native/Harmony hooks that are only fully removed on the next
+game restart even after `OnDisabled` runs, so treat this as "stop it from
+doing more damage now" rather than a guaranteed full unload.
+
 ## POST /commands/bulldoze
 
 Deletes a problem entity by API. Useful for agent-side repair loops after
@@ -450,6 +510,37 @@ Lists local `.crp` saves with paths, timestamps, and file sizes.
 ```bash
 curl -s http://127.0.0.1:32123/state/saves
 ```
+
+## POST /commands/load-save
+
+Loads a save in-process through `LoadingManager.LoadLevel`, the same code path
+as the main menu's Continue/Load Game. This unloads the current level (if any)
+and loads the requested one without restarting the game process, so it does
+not pick up mod DLL changes — rebuild and restart the game for that.
+
+```bash
+curl -s -X POST http://127.0.0.1:32123/commands/load-save \
+  -H "Content-Type: application/json" \
+  -d '{"name":"AgentAutoSave"}'
+```
+
+Omit `name` (or send `{}`) to load the most recent save, matching what
+`--continuelastsave`/the main menu Continue button does. The response returns
+immediately once loading starts; poll `/health` until `levelLoaded` is `true`
+again, then re-check `/state/summary`.
+
+## POST /commands/quit
+
+Requests a clean process exit through `LoadingManager.QuitApplication()`,
+instead of killing the game process externally. Useful before relaunching the
+game to pick up a rebuilt mod DLL.
+
+```bash
+curl -s -X POST http://127.0.0.1:32123/commands/quit
+```
+
+The HTTP response returns before the process actually exits, since
+`QuitApplication` runs a short fade-out coroutine first.
 
 ## POST /commands/set-simulation-speed
 

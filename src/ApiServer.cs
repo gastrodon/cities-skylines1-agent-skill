@@ -199,6 +199,12 @@ namespace SkylinesAgentBridge
                 return RunOnGameThread(request, SaveCommands.ListSaves);
             }
 
+            if (request.Method == "GET" && request.Path == "/state/mods")
+            {
+                int limit = request.GetQueryInt("limit", 500);
+                return RunOnGameThread(request, delegate { return ModCommands.BuildModsJson(limit); });
+            }
+
             if (request.Method == "GET" && request.Path == "/prefabs/roads")
             {
                 return RunOnGameThread(request, GameState.BuildRoadPrefabsJson);
@@ -304,6 +310,12 @@ namespace SkylinesAgentBridge
                 return RunOnGameThread(request, SimulationCommands.Quit);
             }
 
+            if (request.Method == "POST" && request.Path == "/commands/set-mod-enabled")
+            {
+                string body = request.Body;
+                return RunOnGameThread(request, delegate { return ModCommands.SetModEnabled(body); });
+            }
+
             if (request.Method == "POST" && request.Path == "/commands/batch")
             {
                 string body = request.Body;
@@ -350,6 +362,7 @@ namespace SkylinesAgentBridge
                 if (request.Path == "/state/building-anomalies") return "Inspect building placement";
                 if (request.Path == "/state/zone-anomalies") return "Inspect zoning anomalies";
                 if (request.Path == "/state/saves") return "List saves";
+                if (request.Path == "/state/mods") return "List mods";
                 if (request.Path == "/prefabs/roads") return "List road prefabs";
                 if (request.Path == "/prefabs/networks") return "List network prefabs";
                 if (request.Path == "/prefabs/buildings") return "List building prefabs";
@@ -417,6 +430,11 @@ namespace SkylinesAgentBridge
             if (request.Path == "/commands/quit")
             {
                 return "Quit application";
+            }
+
+            if (request.Path == "/commands/set-mod-enabled")
+            {
+                return "Set mod enabled " + JsonUtil.GetString(body, "name", "") + "=" + JsonUtil.GetBool(body, "enabled", false);
             }
 
             if (request.Path == "/commands/set-simulation-speed")
