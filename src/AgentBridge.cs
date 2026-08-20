@@ -8,6 +8,7 @@ namespace SkylinesAgentBridge
         private readonly CommandQueue queue = new CommandQueue();
         private ApiServer server;
         private bool levelLoaded;
+        private GameObject pumpObject;
 
         public static AgentBridge Instance
         {
@@ -27,12 +28,14 @@ namespace SkylinesAgentBridge
         public void OnModEnabled()
         {
             EnsureServer();
+            EnsurePump();
             Debug.Log("[SkylinesAgentBridge] Mod enabled. API bridge listening (no city loaded yet).");
         }
 
         public void OnModDisabled()
         {
             StopServer();
+            StopPump();
             Debug.Log("[SkylinesAgentBridge] Mod disabled. API bridge stopped.");
         }
 
@@ -74,6 +77,27 @@ namespace SkylinesAgentBridge
             if (server != null)
             {
                 server.Stop();
+            }
+        }
+
+        private void EnsurePump()
+        {
+            if (pumpObject != null)
+            {
+                return;
+            }
+
+            pumpObject = new GameObject("SkylinesAgentBridgePump");
+            pumpObject.AddComponent<AgentBridgePump>();
+            UnityEngine.Object.DontDestroyOnLoad(pumpObject);
+        }
+
+        private void StopPump()
+        {
+            if (pumpObject != null)
+            {
+                UnityEngine.Object.Destroy(pumpObject);
+                pumpObject = null;
             }
         }
     }
