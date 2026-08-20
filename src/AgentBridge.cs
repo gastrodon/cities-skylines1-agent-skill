@@ -24,6 +24,18 @@ namespace SkylinesAgentBridge
             get { return queue; }
         }
 
+        public void OnModEnabled()
+        {
+            EnsureServer();
+            Debug.Log("[SkylinesAgentBridge] Mod enabled. API bridge listening (no city loaded yet).");
+        }
+
+        public void OnModDisabled()
+        {
+            StopServer();
+            Debug.Log("[SkylinesAgentBridge] Mod disabled. API bridge stopped.");
+        }
+
         public void OnLevelLoaded()
         {
             levelLoaded = true;
@@ -55,6 +67,14 @@ namespace SkylinesAgentBridge
 
             server = new ApiServer(this, 32123);
             server.Start();
+        }
+
+        private void StopServer()
+        {
+            if (server != null)
+            {
+                server.Stop();
+            }
         }
     }
 }

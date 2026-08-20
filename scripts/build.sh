@@ -29,6 +29,7 @@ target="$out/SkylinesAgentBridge.dll"
 sources=("$src"/*.cs)
 
 mcs \
+  -sdk:2 \
   -target:library \
   -out:"$target" \
   -optimize+ \

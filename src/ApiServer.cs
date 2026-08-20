@@ -46,6 +46,27 @@ namespace SkylinesAgentBridge
             Debug.Log("[SkylinesAgentBridge] API server listening on http://127.0.0.1:" + port);
         }
 
+        public void Stop()
+        {
+            if (!running)
+            {
+                return;
+            }
+
+            running = false;
+            try
+            {
+                if (listener != null)
+                {
+                    listener.Stop();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.Log("[SkylinesAgentBridge] API stop failed: " + ex.Message);
+            }
+        }
+
         private void AcceptLoop()
         {
             while (running)
@@ -196,13 +217,13 @@ namespace SkylinesAgentBridge
 
             if (request.Method == "GET" && request.Path == "/state/saves")
             {
-                return RunOnGameThread(request, SaveCommands.ListSaves);
+                return RunAlways(request, SaveCommands.ListSaves);
             }
 
             if (request.Method == "GET" && request.Path == "/state/mods")
             {
                 int limit = request.GetQueryInt("limit", 500);
-                return RunOnGameThread(request, delegate { return ModCommands.BuildModsJson(limit); });
+                return RunAlways(request, delegate { return ModCommands.BuildModsJson(limit); });
             }
 
             if (request.Method == "GET" && request.Path == "/prefabs/roads")
@@ -302,18 +323,18 @@ namespace SkylinesAgentBridge
             if (request.Method == "POST" && request.Path == "/commands/load-save")
             {
                 string body = request.Body;
-                return RunOnGameThread(request, delegate { return SaveCommands.LoadSave(body); });
+                return RunAlways(request, delegate { return SaveCommands.LoadSave(body); });
             }
 
             if (request.Method == "POST" && request.Path == "/commands/quit")
             {
-                return RunOnGameThread(request, SimulationCommands.Quit);
+                return RunAlways(request, SimulationCommands.Quit);
             }
 
             if (request.Method == "POST" && request.Path == "/commands/set-mod-enabled")
             {
                 string body = request.Body;
-                return RunOnGameThread(request, delegate { return ModCommands.SetModEnabled(body); });
+                return RunAlways(request, delegate { return ModCommands.SetModEnabled(body); });
             }
 
             if (request.Method == "POST" && request.Path == "/commands/batch")
@@ -332,6 +353,16 @@ namespace SkylinesAgentBridge
                 return HttpResponse.Json(409, "{\"ok\":false,\"error\":\"No city is loaded.\"}");
             }
 
+            return RunAlways(request, action);
+        }
+
+        // Use only for routes that are safe to run with no city loaded: they must not
+        // touch level-scoped managers such as NetManager, ZoneManager, VehicleManager,
+        // CitizenManager, or the SavePanel UI, since those may not exist yet at the main
+        // menu. Reading/writing PluginManager, PackageManager/SaveHelper, and
+        // LoadingManager is safe — those are boot-time singletons, not per-level state.
+        private HttpResponse RunAlways(HttpRequest request, Func<CommandResult> action)
+        {
             CommandResult result = bridge.Queue.RunSync(action, 10000);
             bridge.Queue.RunSync(delegate
             {
